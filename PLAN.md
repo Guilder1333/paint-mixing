@@ -288,6 +288,13 @@ TONEMAP_AVAILABLE_TONE_MAP_MODES
 
 Record the probe output in the repo once it is known, so later phases stop treating it as unknown.
 
+**Result (2026-09-05, see `DEVICE_REPORT.md`, gitignored — personal device identifiers):** target device is a
+Nothing A059 (API 36). Back camera (id 0, `LEVEL_3`) reports `MANUAL_SENSOR` + `MANUAL_POST_PROCESSING` +
+`RAW` all present — exposure time range 42228ns–32.7s, ISO 50–51200, tonemap modes CONTRAST_CURVE / FAST /
+HIGH_QUALITY. **Capture path: full manual JPEG (4.1), best case.** RAW/DNG (4.2) is available if 4.1 accuracy
+turns out to be capture-limited (see the note at the end of 4.2) — not needed for v1. `CONTRAST_CURVE` being
+present confirms the identity/linear tonemap curve 4.1 calls for is settable.
+
 ### 4.1 Capture — full manual (CameraX + `Camera2Interop.Extender`)
 
 CameraX does not expose these directly; reach them with `Camera2Interop.Extender` on the

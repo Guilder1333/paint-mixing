@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.paintmixer.app.ui.nav.Screen
 
 /**
- * A stand-in body for every screen in PLAN.md section 5, until each is built
- * out in its own phase. Proves the nav graph wires up and is easy to delete
+ * A stand-in body for every screen in PLAN.md section 5 that hasn't been
+ * built out yet. Proves the nav graph wires up and is easy to delete
  * screen-by-screen as real content replaces it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,10 +29,8 @@ fun PlaceholderScreen(
     nextLabel: String,
     onNext: () -> Unit,
     onBack: (() -> Unit)? = null,
-    secondaryLabel: String? = null,
-    onSecondary: (() -> Unit)? = null,
-    debugLabel: String? = null,
-    onDebug: (() -> Unit)? = null
+    /** Extra (label, action) buttons rendered below Back -- e.g. secondary flows, debug links. */
+    extraActions: List<Pair<String, () -> Unit>> = emptyList()
 ) {
     Scaffold(
         topBar = { TopAppBar(title = { Text(screen.title) }) }
@@ -47,14 +45,11 @@ fun PlaceholderScreen(
             Text("Screen: ${screen.title}")
             Text("Route: ${screen.route}")
             Button(onClick = onNext) { Text(nextLabel) }
-            if (secondaryLabel != null && onSecondary != null) {
-                OutlinedButton(onClick = onSecondary) { Text(secondaryLabel) }
-            }
             if (onBack != null) {
                 OutlinedButton(onClick = onBack) { Text("Back") }
             }
-            if (debugLabel != null && onDebug != null) {
-                TextButton(onClick = onDebug) { Text(debugLabel) }
+            for ((label, action) in extraActions) {
+                TextButton(onClick = action) { Text(label) }
             }
         }
     }

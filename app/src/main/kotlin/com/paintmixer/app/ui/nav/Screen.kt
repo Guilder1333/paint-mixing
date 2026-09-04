@@ -15,5 +15,6 @@ enum class Screen(val route: String, val title: String) {
     TargetPick("target_pick", "Pick Target Colour"),
     Result("result", "Result"),
     Export("export", "Export / Share"),
-    DeviceProbe("device_probe", "Device Probe")
+    DeviceProbe("device_probe", "Device Probe"),
+    CaptureRepeatabilityTest("capture_repeatability_test", "Capture Repeatability Test")
 }

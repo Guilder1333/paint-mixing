@@ -14,10 +14,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val database = (application as PaintMixerApp).container.database
         setContent {
             PaintMixerTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    PaintMixerNavHost()
+                    PaintMixerNavHost(database = database)
                 }
             }
         }

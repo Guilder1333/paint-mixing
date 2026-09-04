@@ -1,49 +1,61 @@
 package com.paintmixer.app.ui.nav
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.paintmixer.app.capture.PendingPaletteCapture
+import com.paintmixer.app.data.AppDatabase
+import com.paintmixer.app.ui.screens.CaptureRepeatabilityScreen
 import com.paintmixer.app.ui.screens.DeviceProbeScreen
+import com.paintmixer.app.ui.screens.PaletteCaptureScreen
+import com.paintmixer.app.ui.screens.PalettePickingScreen
 import com.paintmixer.app.ui.screens.PlaceholderScreen
+import com.paintmixer.app.ui.screens.WhiteReferenceScreen
 
 @Composable
-fun PaintMixerNavHost(navController: NavHostController = rememberNavController()) {
+fun PaintMixerNavHost(database: AppDatabase, navController: NavHostController = rememberNavController()) {
+    val pending = remember { PendingPaletteCapture() }
+    val paletteDao = remember { database.paletteDao() }
+
     NavHost(navController = navController, startDestination = Screen.PaletteList.route) {
         // Palette creation flow: List -> Capture -> White reference -> Picking -> back to List.
         composable(Screen.PaletteList.route) {
             PlaceholderScreen(
                 screen = Screen.PaletteList,
                 nextLabel = "New palette",
-                onNext = { navController.navigate(Screen.PaletteCapture.route) },
-                secondaryLabel = "Match a target",
-                onSecondary = { navController.navigate(Screen.TargetCapture.route) },
-                debugLabel = "Device probe (debug)",
-                onDebug = { navController.navigate(Screen.DeviceProbe.route) }
+                onNext = {
+                    pending.reset()
+                    navController.navigate(Screen.PaletteCapture.route)
+                },
+                extraActions = listOf(
+                    "Match a target" to { navController.navigate(Screen.TargetCapture.route) },
+                    "Device probe (debug)" to { navController.navigate(Screen.DeviceProbe.route) },
+                    "Capture repeatability test (debug)" to { navController.navigate(Screen.CaptureRepeatabilityTest.route) }
+                )
             )
         }
         composable(Screen.PaletteCapture.route) {
-            PlaceholderScreen(
-                screen = Screen.PaletteCapture,
-                nextLabel = "Shutter",
-                onNext = { navController.navigate(Screen.WhiteReference.route) },
+            PaletteCaptureScreen(
+                pending = pending,
+                onCaptured = { navController.navigate(Screen.WhiteReference.route) },
                 onBack = navController::popBackStack
             )
         }
         composable(Screen.WhiteReference.route) {
-            PlaceholderScreen(
-                screen = Screen.WhiteReference,
-                nextLabel = "Tapped white card",
-                onNext = { navController.navigate(Screen.PalettePicking.route) },
+            WhiteReferenceScreen(
+                pending = pending,
+                onConfirmed = { navController.navigate(Screen.PalettePicking.route) },
                 onBack = navController::popBackStack
             )
         }
         composable(Screen.PalettePicking.route) {
-            PlaceholderScreen(
-                screen = Screen.PalettePicking,
-                nextLabel = "Save palette",
-                onNext = {
+            PalettePickingScreen(
+                pending = pending,
+                paletteDao = paletteDao,
+                onSaved = {
                     navController.navigate(Screen.PaletteList.route) {
                         popUpTo(Screen.PaletteList.route) { inclusive = true }
                     }
@@ -52,7 +64,7 @@ fun PaintMixerNavHost(navController: NavHostController = rememberNavController()
             )
         }
 
-        // Target matching flow: Capture -> Pick -> Result -> Export.
+        // Target matching flow: Capture -> Pick -> Result -> Export. Still placeholders -- Phase 4.
         composable(Screen.TargetCapture.route) {
             PlaceholderScreen(
                 screen = Screen.TargetCapture,
@@ -92,6 +104,9 @@ fun PaintMixerNavHost(navController: NavHostController = rememberNavController()
 
         composable(Screen.DeviceProbe.route) {
             DeviceProbeScreen(onBack = navController::popBackStack)
+        }
+        composable(Screen.CaptureRepeatabilityTest.route) {
+            CaptureRepeatabilityScreen(paletteDao = paletteDao, onBack = navController::popBackStack)
         }
     }
 }

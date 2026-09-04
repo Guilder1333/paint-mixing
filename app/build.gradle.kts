@@ -34,6 +34,9 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // CameraX's Camera2Interop (manual exposure/ISO/WB/tonemap, PLAN.md 4.1) is still an
+        // experimental API surface.
+        freeCompilerArgs += listOf("-opt-in=androidx.camera.camera2.interop.ExperimentalCamera2Interop")
     }
 
     packaging {
@@ -67,6 +70,12 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
+
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+    implementation(libs.exifinterface)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlin.test.junit)

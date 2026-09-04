@@ -1,0 +1,4 @@
+<resources>
+    <!-- Window theme only: Compose owns all in-app styling via Material3. -->
+    <style name="Theme.PaintMixer" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

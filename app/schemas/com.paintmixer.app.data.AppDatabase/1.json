@@ -1,0 +1,377 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "a68de873ecfe3f4d4a576b7585fe8b92",
+    "entities": [
+      {
+        "tableName": "Palette",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `imagePath` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `whiteRefX` REAL NOT NULL, `whiteRefY` REAL NOT NULL, `whiteRefReflectance` REAL NOT NULL, `exposureTimeNs` INTEGER NOT NULL, `iso` INTEGER NOT NULL, `awbGainR` REAL NOT NULL, `awbGainGEven` REAL NOT NULL, `awbGainGOdd` REAL NOT NULL, `awbGainB` REAL NOT NULL, `focusDistance` REAL, `linearTonemap` INTEGER NOT NULL, `manualControlUsed` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imagePath",
+            "columnName": "imagePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whiteRefX",
+            "columnName": "whiteRefX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whiteRefY",
+            "columnName": "whiteRefY",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whiteRefReflectance",
+            "columnName": "whiteRefReflectance",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.exposureTimeNs",
+            "columnName": "exposureTimeNs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.iso",
+            "columnName": "iso",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainR",
+            "columnName": "awbGainR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainGEven",
+            "columnName": "awbGainGEven",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainGOdd",
+            "columnName": "awbGainGOdd",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainB",
+            "columnName": "awbGainB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.focusDistance",
+            "columnName": "focusDistance",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "capture.linearTonemap",
+            "columnName": "linearTonemap",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.manualControlUsed",
+            "columnName": "manualControlUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "PaletteColor",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `paletteId` TEXT NOT NULL, `orderIndex` INTEGER NOT NULL, `name` TEXT NOT NULL, `sampleX` REAL NOT NULL, `sampleY` REAL NOT NULL, `srgbHex` TEXT NOT NULL, `linR` REAL NOT NULL, `linG` REAL NOT NULL, `linB` REAL NOT NULL, `labL` REAL NOT NULL, `labA` REAL NOT NULL, `labB` REAL NOT NULL, `strength` REAL NOT NULL, `sampleStdDev` REAL NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paletteId",
+            "columnName": "paletteId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderIndex",
+            "columnName": "orderIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sampleX",
+            "columnName": "sampleX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sampleY",
+            "columnName": "sampleY",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "srgbHex",
+            "columnName": "srgbHex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linR",
+            "columnName": "linR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linG",
+            "columnName": "linG",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linB",
+            "columnName": "linB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labL",
+            "columnName": "labL",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labA",
+            "columnName": "labA",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labB",
+            "columnName": "labB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strength",
+            "columnName": "strength",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sampleStdDev",
+            "columnName": "sampleStdDev",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "TargetShot",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `paletteId` TEXT NOT NULL, `imagePath` TEXT NOT NULL, `pickX` REAL NOT NULL, `pickY` REAL NOT NULL, `srgbHex` TEXT NOT NULL, `linR` REAL NOT NULL, `linG` REAL NOT NULL, `linB` REAL NOT NULL, `labL` REAL NOT NULL, `labA` REAL NOT NULL, `labB` REAL NOT NULL, `whiteRefX` REAL NOT NULL, `whiteRefY` REAL NOT NULL, `createdAt` INTEGER NOT NULL, `exposureTimeNs` INTEGER NOT NULL, `iso` INTEGER NOT NULL, `awbGainR` REAL NOT NULL, `awbGainGEven` REAL NOT NULL, `awbGainGOdd` REAL NOT NULL, `awbGainB` REAL NOT NULL, `focusDistance` REAL, `linearTonemap` INTEGER NOT NULL, `manualControlUsed` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paletteId",
+            "columnName": "paletteId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "imagePath",
+            "columnName": "imagePath",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pickX",
+            "columnName": "pickX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pickY",
+            "columnName": "pickY",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "srgbHex",
+            "columnName": "srgbHex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linR",
+            "columnName": "linR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linG",
+            "columnName": "linG",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "linB",
+            "columnName": "linB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labL",
+            "columnName": "labL",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labA",
+            "columnName": "labA",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "labB",
+            "columnName": "labB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whiteRefX",
+            "columnName": "whiteRefX",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "whiteRefY",
+            "columnName": "whiteRefY",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.exposureTimeNs",
+            "columnName": "exposureTimeNs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.iso",
+            "columnName": "iso",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainR",
+            "columnName": "awbGainR",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainGEven",
+            "columnName": "awbGainGEven",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainGOdd",
+            "columnName": "awbGainGOdd",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.awbGainB",
+            "columnName": "awbGainB",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.focusDistance",
+            "columnName": "focusDistance",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "capture.linearTonemap",
+            "columnName": "linearTonemap",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capture.manualControlUsed",
+            "columnName": "manualControlUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a68de873ecfe3f4d4a576b7585fe8b92')"
+    ]
+  }
+}

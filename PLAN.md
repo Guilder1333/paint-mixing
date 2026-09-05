@@ -503,6 +503,31 @@ something touches the phone to trigger the shot, so a genuinely hands-off trigge
 confirmed working) should skip it. A remote-triggered shot always uses the no-delay path for the
 same reason.
 
+**Update 5 -- exposure boost for the identity tonemap.** The preview visibly darkening the instant
+Shutter locks in the manual request is expected, not a bug: it's the identity tonemap curve (4.1)
+actually removing the normal boosting S-curve a JPEG usually gets, which is exactly what makes the
+pixel values proportional to linear scene brightness. But it exposed a real problem: reusing the
+*metered* exposure verbatim (which was metered assuming that boost curve would follow) produced a
+needlessly dark capture -- a white reference measured only ~90/255, wasting most of the 8-bit range
+and leaving darker paints only a handful of distinguishable values. Fixed with
+`CaptureSettings.withLinearExposureBoost()` (`Camera2ManualOptions.kt`): multiplies exposure time by
+`LINEAR_EXPOSURE_BOOST_FACTOR` (2.2, chosen to target ~200/255 for white with headroom against
+clipping specular highlights on glossy paint) applied exactly once, at the metered-reading ->
+locked-and-persisted transition in `PaletteCaptureScreen`. Not reapplied on replay (repeatability
+test, future target shots) -- what gets stored already reflects the boost. The 2.2 factor is a
+starting point from one measurement and likely needs retuning; re-check the White Reference screen's
+displayed median RGB after a fresh palette shot and adjust the constant if it's still noticeably
+dark or starts clipping (`PatchSample.isBlownOut` will flag clipping directly).
+
+**Result, retest:** 0.4 max ΔE over 10 shots, 0.5 over 20 -- well under the 1.5 target, a large
+improvement over the pre-self-timer 1.3/1.6. **Phase 2's repeatability half of the acceptance test is
+met.**
+
+**Result, restart test:** 1.0 max ΔE over a pre-restart session, 0.6 over a post-restart session --
+both still comfortably under 1.5 (normal session-to-session variance). Lab values compared by hand
+across the actual app kill/relaunch showed no visible drift. **Both halves of Phase 2's acceptance
+test are now met -- Phase 2 is done.**
+
 ### Phase 3 — Palette creation
 Picking with loupe, ordered auto-naming, rename, delete, resample, persistence, palette list.
 **Done when:** a palette survives an app restart with colours, names and order intact.

@@ -34,6 +34,7 @@ import androidx.core.content.ContextCompat
 import com.paintmixer.app.capture.CameraController
 import com.paintmixer.app.capture.PendingPaletteCapture
 import com.paintmixer.app.capture.RemoteShutterController
+import com.paintmixer.app.capture.withLinearExposureBoost
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -97,7 +98,11 @@ fun PaletteCaptureScreen(
     }
 
     fun shutter(delaySeconds: Int) {
-        val toLock = liveSettings ?: return
+        // Metering targets a normally tonemapped (brightness-boosted) JPEG; the identity tonemap
+        // this app actually shoots with removes that boost, so the metered exposure needs
+        // compensating before it's locked in -- otherwise the linear capture comes out needlessly
+        // dark (confirmed: white read ~90/255 without this). See Camera2ManualOptions.kt.
+        val toLock = liveSettings?.withLinearExposureBoost() ?: return
         if (capturing) return
         capturing = true
         error = null
@@ -156,11 +161,14 @@ fun PaletteCaptureScreen(
                 )
 
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val settings = liveSettings
+                    val settings = liveSettings?.withLinearExposureBoost()
                     Text(
                         if (settings == null) {
                             "Metering..."
                         } else {
+                            // These are what Shutter will actually lock in -- exposure already
+                            // includes the boost that compensates for the identity tonemap curve
+                            // (see Camera2ManualOptions.kt), not the raw metered reading.
                             "Exposure: ${settings.exposureTimeNs} ns   ISO: ${settings.iso}\n" +
                                 "AWB gains: R=${"%.2f".format(settings.awbGainR)} " +
                                 "Geven=${"%.2f".format(settings.awbGainGEven)} " +

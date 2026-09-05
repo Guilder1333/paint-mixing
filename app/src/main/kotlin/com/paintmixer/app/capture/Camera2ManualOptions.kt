@@ -54,3 +54,25 @@ internal fun manualCaptureRequestOptions(settings: CaptureSettings): CaptureRequ
 /** Two-point (0,0)-(1,1) curve per channel -- output equals input, i.e. no tone mapping at all. */
 private val IDENTITY_CURVE = floatArrayOf(0f, 0f, 1f, 1f)
 private val IDENTITY_TONEMAP_CURVE = TonemapCurve(IDENTITY_CURVE, IDENTITY_CURVE, IDENTITY_CURVE)
+
+/**
+ * Auto-exposure metering targets what looks right *after* a normal boosting tonemap curve is
+ * applied; the identity curve above removes that boost entirely, so reusing a metered exposure
+ * verbatim produces a needlessly dark, low-precision capture -- confirmed empirically on the
+ * target device: a white reference read ~90/255 under the metered exposure, using barely a third
+ * of the 8-bit range and leaving darker paints only a handful of distinguishable values.
+ *
+ * Apply this exactly once, at the metered-reading -> locked-and-persisted transition
+ * (`PaletteCaptureScreen`), never on replay -- what gets stored already reflects the boost, so
+ * replaying a palette's settings verbatim is correct without reapplying this a second time.
+ *
+ * The factor is an empirical starting point from that one measurement (target ~200/255 for
+ * white, leaving headroom against clipping specular highlights on wet/glossy paint -- PLAN.md 4.3's
+ * glare warning). [PatchSample.isBlownOut] still catches it if this overshoots on a brighter scene.
+ * Retune `LINEAR_EXPOSURE_BOOST_FACTOR` if repeated white-reference readings run persistently high
+ * or low.
+ */
+fun CaptureSettings.withLinearExposureBoost(): CaptureSettings =
+    copy(exposureTimeNs = (exposureTimeNs * LINEAR_EXPOSURE_BOOST_FACTOR).toLong())
+
+private const val LINEAR_EXPOSURE_BOOST_FACTOR = 2.2

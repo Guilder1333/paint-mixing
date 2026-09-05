@@ -16,5 +16,6 @@ enum class Screen(val route: String, val title: String) {
     Result("result", "Result"),
     Export("export", "Export / Share"),
     DeviceProbe("device_probe", "Device Probe"),
-    CaptureRepeatabilityTest("capture_repeatability_test", "Capture Repeatability Test")
+    CaptureRepeatabilityTest("capture_repeatability_test", "Capture Repeatability Test"),
+    RemoteDiagnostics("remote_diagnostics", "Remote Trigger Diagnostics")
 }

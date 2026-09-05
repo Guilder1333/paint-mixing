@@ -35,6 +35,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.paintmixer.app.capture.CameraController
 import com.paintmixer.app.capture.ImageSampling
+import com.paintmixer.app.capture.RemoteShutterController
 import com.paintmixer.app.data.Palette
 import com.paintmixer.app.data.PaletteDao
 import com.paintmixer.core.color.DeltaE
@@ -44,6 +45,7 @@ import com.paintmixer.core.color.WhiteBalance
 import com.paintmixer.core.color.toLab
 import com.paintmixer.core.color.toXyz
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -65,7 +67,11 @@ import java.util.UUID
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CaptureRepeatabilityScreen(paletteDao: PaletteDao, onBack: () -> Unit) {
+fun CaptureRepeatabilityScreen(
+    paletteDao: PaletteDao,
+    remoteShutter: RemoteShutterController,
+    onBack: () -> Unit
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
@@ -105,11 +111,16 @@ fun CaptureRepeatabilityScreen(paletteDao: PaletteDao, onBack: () -> Unit) {
     val controller = remember { CameraController(context) }
     val previewView = remember { PreviewView(context) }
     var capturing by remember { mutableStateOf(false) }
+    var countdown by remember { mutableStateOf<Int?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val shots = remember { mutableStateListOf<Lab>() }
 
     DisposableEffect(Unit) {
-        onDispose { controller.unbind() }
+        remoteShutter.registerListener()
+        onDispose {
+            remoteShutter.unregisterListener()
+            controller.unbind()
+        }
     }
 
     LaunchedEffect(hasCameraPermission, palette) {
@@ -120,6 +131,45 @@ fun CaptureRepeatabilityScreen(paletteDao: PaletteDao, onBack: () -> Unit) {
                 error = "Camera failed to start: ${e.message}"
             }
         }
+    }
+
+    fun shoot(delaySeconds: Int) {
+        val p = palette ?: return
+        val whiteRef = whiteRefLinear ?: return
+        if (capturing) return
+        capturing = true
+        error = null
+        scope.launch {
+            try {
+                // Same as PaletteCaptureScreen -- lock first, then optionally wait out hand-shake
+                // from whatever triggered this shot before the shutter fires.
+                controller.lock(p.capture)
+                for (remaining in delaySeconds downTo 1) {
+                    countdown = remaining
+                    delay(1000)
+                }
+                countdown = null
+
+                val dir = File(context.filesDir, "repeatability").apply { mkdirs() }
+                val file = File(dir, "${UUID.randomUUID()}.jpg")
+                controller.shootLocked(file)
+                val bmp = withContext(Dispatchers.IO) { ImageSampling.decodeUpright(file) }
+                val centerSample = ImageSampling.samplePatch(bmp, 0.5f, 0.5f)
+                val linear = centerSample.toLinearRgb(p.capture.linearTonemap)
+                val normalised = WhiteBalance.normalise(linear, whiteRef, p.whiteRefReflectance.toDouble())
+                shots.add(normalised.toXyz().toLab())
+            } catch (e: Exception) {
+                error = "Capture failed: ${e.message}"
+            } finally {
+                capturing = false
+                countdown = null
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // No delay for a remote trigger -- nothing touches the phone, so nothing to wait out.
+        remoteShutter.events.collect { shoot(delaySeconds = 0) }
     }
 
     val maxDeltaE = remember(shots.size) {
@@ -150,31 +200,23 @@ fun CaptureRepeatabilityScreen(paletteDao: PaletteDao, onBack: () -> Unit) {
 
                     Button(
                         enabled = !capturing && whiteRefLinear != null,
-                        onClick = {
-                            capturing = true
-                            error = null
-                            scope.launch {
-                                try {
-                                    val dir = File(context.filesDir, "repeatability").apply { mkdirs() }
-                                    val file = File(dir, "${UUID.randomUUID()}.jpg")
-                                    controller.lockAndCapture(p.capture, file)
-                                    val bmp = withContext(Dispatchers.IO) { ImageSampling.decodeUpright(file) }
-                                    val centerSample = ImageSampling.samplePatch(bmp, 0.5f, 0.5f)
-                                    val linear = centerSample.toLinearRgb(p.capture.linearTonemap)
-                                    val normalised = WhiteBalance.normalise(
-                                        linear,
-                                        whiteRefLinear!!,
-                                        p.whiteRefReflectance.toDouble()
-                                    )
-                                    shots.add(normalised.toXyz().toLab())
-                                } catch (e: Exception) {
-                                    error = "Capture failed: ${e.message}"
-                                } finally {
-                                    capturing = false
-                                }
+                        onClick = { shoot(SELF_TIMER_SECONDS) }
+                    ) {
+                        Text(
+                            when {
+                                countdown != null -> "Hold still... $countdown"
+                                capturing -> "Capturing..."
+                                else -> "Shoot, ${SELF_TIMER_SECONDS}s self-timer (samples the frame centre)"
                             }
-                        }
-                    ) { Text(if (capturing) "Capturing..." else "Shoot (samples the frame centre)") }
+                        )
+                    }
+                    OutlinedButton(
+                        enabled = !capturing && whiteRefLinear != null,
+                        onClick = { shoot(0) }
+                    ) {
+                        Text(if (capturing) "Capturing..." else "Shoot, no delay (samples the frame centre)")
+                    }
+                    Text("A Bluetooth remote fires the no-delay version.")
 
                     LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
                         items(shots.size) { i ->
@@ -189,3 +231,6 @@ fun CaptureRepeatabilityScreen(paletteDao: PaletteDao, onBack: () -> Unit) {
         }
     }
 }
+
+/** Seconds between locking exposure and the shutter actually firing -- lets hand-shake settle. */
+private const val SELF_TIMER_SECONDS = 3

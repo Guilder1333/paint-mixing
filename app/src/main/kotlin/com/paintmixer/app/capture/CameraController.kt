@@ -100,21 +100,32 @@ class CameraController(private val context: Context) {
     }
 
     /**
-     * Locks the camera to exactly [settings] (PLAN.md 4.1's full manual request) and takes one
-     * photo to [outputFile]. Returns the settings actually recorded -- same values, stamped as
-     * manual/linear-tonemap, so the caller can persist them verbatim (a new palette) or compare
-     * them against a palette's already-stored settings (they should be identical byte-for-byte
-     * on replay, since nothing here re-derives anything).
+     * Locks the camera to exactly [settings] (PLAN.md 4.1's full manual request). Split out from
+     * [shootLocked] so a caller can insert a self-timer delay in between -- lock immediately (so
+     * exposure/WB stop drifting), then let the phone sit still for a few seconds before the
+     * shutter actually fires, rather than firing the instant a finger leaves the touch button.
      */
-    suspend fun lockAndCapture(settings: CaptureSettings, outputFile: File): CaptureSettings {
-        val control = checkNotNull(camera2Control) { "bind() must be called before lockAndCapture()" }
-        val capture = checkNotNull(imageCapture) { "bind() must be called before lockAndCapture()" }
-
+    suspend fun lock(settings: CaptureSettings) {
+        val control = checkNotNull(camera2Control) { "bind() must be called before lock()" }
         control.addCaptureRequestOptions(manualCaptureRequestOptions(settings)).await()
+    }
 
+    /** Takes one photo to [outputFile] using whatever was last passed to [lock]. */
+    suspend fun shootLocked(outputFile: File) {
+        val capture = checkNotNull(imageCapture) { "bind() must be called before shootLocked()" }
         val outputOptions = ImageCapture.OutputFileOptions.Builder(outputFile).build()
         capture.takePictureSuspend(outputOptions, mainExecutor)
+    }
 
+    /**
+     * [lock] then immediately [shootLocked], no delay in between. Returns the settings actually
+     * recorded -- same values, stamped as manual/linear-tonemap, so the caller can persist them
+     * verbatim (a new palette) or compare them against a palette's already-stored settings (they
+     * should be identical byte-for-byte on replay, since nothing here re-derives anything).
+     */
+    suspend fun lockAndCapture(settings: CaptureSettings, outputFile: File): CaptureSettings {
+        lock(settings)
+        shootLocked(outputFile)
         return settings.copy(linearTonemap = true, manualControlUsed = true)
     }
 

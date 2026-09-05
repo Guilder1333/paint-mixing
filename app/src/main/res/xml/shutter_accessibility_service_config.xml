@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- canRequestFilterKeyEvents declares the capability; the service still has to request the
+     FLAG_REQUEST_FILTER_KEY_EVENTS flag itself once connected (ShutterAccessibilityService). -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:canRequestFilterKeyEvents="true"
+    android:description="@string/shutter_accessibility_service_description"
+    android:notificationTimeout="100" />

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Paint Mixer</string>
+    <string name="shutter_accessibility_service_description">Lets the camera Shutter be triggered by a hardware button (volume keys, e.g. a Bluetooth remote) instead of the touchscreen, to avoid camera shake. Only reads volume/camera key presses to fire the shutter; nothing else.</string>
 </resources>

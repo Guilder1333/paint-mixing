@@ -7,16 +7,22 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.paintmixer.app.capture.PendingPaletteCapture
+import com.paintmixer.app.capture.RemoteShutterController
 import com.paintmixer.app.data.AppDatabase
 import com.paintmixer.app.ui.screens.CaptureRepeatabilityScreen
 import com.paintmixer.app.ui.screens.DeviceProbeScreen
 import com.paintmixer.app.ui.screens.PaletteCaptureScreen
 import com.paintmixer.app.ui.screens.PalettePickingScreen
 import com.paintmixer.app.ui.screens.PlaceholderScreen
+import com.paintmixer.app.ui.screens.RemoteDiagnosticsScreen
 import com.paintmixer.app.ui.screens.WhiteReferenceScreen
 
 @Composable
-fun PaintMixerNavHost(database: AppDatabase, navController: NavHostController = rememberNavController()) {
+fun PaintMixerNavHost(
+    database: AppDatabase,
+    remoteShutter: RemoteShutterController,
+    navController: NavHostController = rememberNavController()
+) {
     val pending = remember { PendingPaletteCapture() }
     val paletteDao = remember { database.paletteDao() }
 
@@ -33,13 +39,15 @@ fun PaintMixerNavHost(database: AppDatabase, navController: NavHostController = 
                 extraActions = listOf(
                     "Match a target" to { navController.navigate(Screen.TargetCapture.route) },
                     "Device probe (debug)" to { navController.navigate(Screen.DeviceProbe.route) },
-                    "Capture repeatability test (debug)" to { navController.navigate(Screen.CaptureRepeatabilityTest.route) }
+                    "Capture repeatability test (debug)" to { navController.navigate(Screen.CaptureRepeatabilityTest.route) },
+                    "Remote trigger diagnostics (debug)" to { navController.navigate(Screen.RemoteDiagnostics.route) }
                 )
             )
         }
         composable(Screen.PaletteCapture.route) {
             PaletteCaptureScreen(
                 pending = pending,
+                remoteShutter = remoteShutter,
                 onCaptured = { navController.navigate(Screen.WhiteReference.route) },
                 onBack = navController::popBackStack
             )
@@ -106,7 +114,14 @@ fun PaintMixerNavHost(database: AppDatabase, navController: NavHostController = 
             DeviceProbeScreen(onBack = navController::popBackStack)
         }
         composable(Screen.CaptureRepeatabilityTest.route) {
-            CaptureRepeatabilityScreen(paletteDao = paletteDao, onBack = navController::popBackStack)
+            CaptureRepeatabilityScreen(
+                paletteDao = paletteDao,
+                remoteShutter = remoteShutter,
+                onBack = navController::popBackStack
+            )
+        }
+        composable(Screen.RemoteDiagnostics.route) {
+            RemoteDiagnosticsScreen(remoteShutter = remoteShutter, onBack = navController::popBackStack)
         }
     }
 }

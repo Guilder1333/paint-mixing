@@ -33,6 +33,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.paintmixer.app.capture.CameraController
 import com.paintmixer.app.capture.PendingPaletteCapture
+import com.paintmixer.app.capture.RemoteShutterController
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
@@ -49,6 +51,7 @@ import java.util.UUID
 @Composable
 fun PaletteCaptureScreen(
     pending: PendingPaletteCapture,
+    remoteShutter: RemoteShutterController,
     onCaptured: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -70,12 +73,17 @@ fun PaletteCaptureScreen(
 
     val controller = remember { CameraController(context) }
     var capturing by remember { mutableStateOf(false) }
+    var countdown by remember { mutableStateOf<Int?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     val liveSettings by controller.liveMeteredSettings.collectAsState()
     val previewView = remember { PreviewView(context) }
 
     DisposableEffect(Unit) {
-        onDispose { controller.unbind() }
+        remoteShutter.registerListener()
+        onDispose {
+            remoteShutter.unregisterListener()
+            controller.unbind()
+        }
     }
 
     LaunchedEffect(hasCameraPermission) {
@@ -86,6 +94,46 @@ fun PaletteCaptureScreen(
                 error = "Camera failed to start: ${e.message}"
             }
         }
+    }
+
+    fun shutter(delaySeconds: Int) {
+        val toLock = liveSettings ?: return
+        if (capturing) return
+        capturing = true
+        error = null
+        scope.launch {
+            try {
+                // Lock exposure/WB immediately (so they stop drifting), then optionally give the
+                // phone a few seconds to go still before the shutter actually fires -- the
+                // repeatability test showed hand-shake right at button-press was a real noise
+                // source. See PLAN.md Phase 2. Both options are offered since a delay isn't
+                // needed (just slower) once a hands-off trigger is actually in use.
+                controller.lock(toLock)
+                for (remaining in delaySeconds downTo 1) {
+                    countdown = remaining
+                    delay(1000)
+                }
+                countdown = null
+
+                val dir = File(context.filesDir, "palettes").apply { mkdirs() }
+                val file = File(dir, "${UUID.randomUUID()}.jpg")
+                controller.shootLocked(file)
+                pending.imagePath = file.absolutePath
+                pending.capture = toLock.copy(linearTonemap = true, manualControlUsed = true)
+                onCaptured()
+            } catch (e: Exception) {
+                error = "Capture failed: ${e.message}"
+            } finally {
+                capturing = false
+                countdown = null
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        // No delay for a remote trigger -- the point of one is that nothing touches the phone,
+        // so there's nothing for the timer to wait out.
+        remoteShutter.events.collect { shutter(delaySeconds = 0) }
     }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Capture Palette") }) }) { innerPadding ->
@@ -124,26 +172,23 @@ fun PaletteCaptureScreen(
 
                     Button(
                         enabled = liveSettings != null && !capturing,
-                        onClick = {
-                            val toLock = liveSettings ?: return@Button
-                            capturing = true
-                            error = null
-                            scope.launch {
-                                try {
-                                    val dir = File(context.filesDir, "palettes").apply { mkdirs() }
-                                    val file = File(dir, "${UUID.randomUUID()}.jpg")
-                                    val used = controller.lockAndCapture(toLock, file)
-                                    pending.imagePath = file.absolutePath
-                                    pending.capture = used
-                                    onCaptured()
-                                } catch (e: Exception) {
-                                    error = "Capture failed: ${e.message}"
-                                } finally {
-                                    capturing = false
-                                }
+                        onClick = { shutter(SELF_TIMER_SECONDS) }
+                    ) {
+                        Text(
+                            when {
+                                countdown != null -> "Hold still... $countdown"
+                                capturing -> "Capturing..."
+                                else -> "Shutter (${SELF_TIMER_SECONDS}s self-timer)"
                             }
-                        }
-                    ) { Text(if (capturing) "Capturing..." else "Shutter") }
+                        )
+                    }
+                    OutlinedButton(
+                        enabled = liveSettings != null && !capturing,
+                        onClick = { shutter(0) }
+                    ) {
+                        Text(if (capturing) "Capturing..." else "Shutter (no delay)")
+                    }
+                    Text("A Bluetooth remote (volume-key click) fires the no-delay version -- nothing touches the phone, so there's nothing for a timer to wait out.")
 
                     OutlinedButton(onClick = onBack) { Text("Back") }
                 }
@@ -151,3 +196,6 @@ fun PaletteCaptureScreen(
         }
     }
 }
+
+/** Seconds between locking exposure and the shutter actually firing -- lets hand-shake settle. */
+private const val SELF_TIMER_SECONDS = 3

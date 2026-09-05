@@ -431,6 +431,78 @@ replayed settings reproduce the same values.
 it does not, the cause is in capture, and no amount of work on the mixing model will compensate.
 Stop and fix it before building on top.
 
+**Result (2026-09-05):** 1.3 max ΔE over 10 shots (under the 1.5 target) with careful, static
+handling; rose to 1.6 over 50 shots when handling was less careful. Traced to hand-shake from
+pressing the on-screen touch Shutter button, not the capture pipeline itself — confirms the fixed-
+settings-replay approach works; the remaining noise source was physical, not numerical. Fixed by
+adding a remote-shutter trigger (`RemoteShutterController`): the Activity intercepts
+`KEYCODE_VOLUME_UP/DOWN` (the de facto convention cheap Bluetooth camera remotes use) and
+`KEYCODE_HEADSETHOOK`/`KEYCODE_MEDIA_PLAY_PAUSE` (a Bluetooth headset's play button) and routes them
+to whichever capture screen is on screen, so a shot can be taken without touching the phone. Nothing
+here is Android-automatic — a remote's volume-key click and a headset's media-button press are both
+ordinary hardware `KeyEvent`s an app has to choose to treat as a shutter release.
+
+**Update:** the headset play-button path did not fire via plain `dispatchKeyEvent` on the target
+device -- confirmed by testing, not just theory. Bluetooth media-button presses are routed by the
+platform's audio framework to whichever app holds the active `MediaSession`, not delivered as an
+ordinary key event to the foreground Activity. Fixed with `MediaButtonShutter`: a registered
+`MediaSessionCompat` (from `androidx.media`, deprecated-but-functional -- Media3 would be
+considerable extra weight just to catch one hardware button) with a `STATE_PAUSED` playback state,
+activated in `onStart`/deactivated in `onStop`. Volume-key handling (for an actual Bluetooth shutter
+remote, not yet tested) stays on the plain `dispatchKeyEvent` path, since it isn't MediaSession-routed.
+
+**Update 2:** the `MediaSessionCompat` fix *also* did not make the headset play button fire, on
+retest. Two different implementation strategies failing points at something more fundamental than
+an API detail -- plausibly the OS/Bluetooth stack not routing AVRCP play/pause to any app session at
+all when nothing is actually playing audio anywhere on the device, which no in-app fix can work
+around without this app also holding real audio focus/playback state (not attempted -- disproportionate
+complexity for a shutter trigger). Rather than keep guessing blind (no earphones or BT remote on hand
+to test against), fixed the actual root cause directly instead of chasing a specific trigger source:
+**`CameraController.lock()`/`shootLocked()` are now called with a 3-second gap** (`SELF_TIMER_SECONDS`
+in each capture screen) -- exposure/WB lock immediately, then the phone has a few seconds to go still
+before the shutter actually fires, regardless of what pressed the button. This fixes the hand-shake
+problem unconditionally, independent of whichever trigger (touch, volume-key remote, headset) ends up
+being used. The `MediaButtonShutter`/headset code is left in place (harmless, might work on other
+hardware) but is unconfirmed and not the relied-upon fix.
+
+**Update 3:** the self-timer doesn't fully answer the concern either -- a touch at the *start* of
+the countdown can still nudge a handheld or lightly-mounted phone, and the user asked to keep
+pursuing an actual hands-off trigger rather than accept that. Built `RemoteDiagnosticsScreen`
+(on-screen live log of every raw key/media-session signal, no camera involved) to stop guessing
+blind. Result: **zero log lines for anything** -- not the Bluetooth headset's play button (which
+audibly registered on the headset itself), and not even the phone's own physical volume keys. Volume
+keys reaching neither `dispatchKeyEvent` nor any other app-level path is the more surprising half of
+that result; it means something below the normal app layer -- plausibly Nothing OS's own
+hardware-button handling -- is intercepting these before any app, ours included, ever sees them via
+the mechanisms tried so far. Also means a dedicated Bluetooth remote (which emulates volume-up)
+might hit the same wall, not just the headset. Fix in progress: `ShutterAccessibilityService`, an
+`AccessibilityService` with `FLAG_REQUEST_FILTER_KEY_EVENTS` -- the mechanism hardware-button-
+remapper apps use specifically because it sits at a lower level than normal app dispatch. Requires
+a one-time manual grant (Settings > Accessibility > Paint Mixer shutter) that Android does not let
+an app skip. `RemoteDiagnosticsScreen` logs through this path too, so the next test tells us
+definitively whether anything can reach this app's process at all.
+
+**Update 4:** `ShutterAccessibilityService` also logged zero for both the volume keys and the
+headset. One more attempt was made for the headset specifically -- the user pointed out that real
+media apps don't need Accessibility for this at all, because they earn media-button routing
+honestly (holding audio focus, reporting `STATE_PLAYING`), not by merely registering a passive
+session -- so `MediaButtonShutter` was updated to request transient audio focus and report
+`STATE_PLAYING` instead of `STATE_PAUSED`. Untested before the decision below was made.
+
+**Rolled back the entire headset/media-button path** (`MediaButtonShutter`, the `androidx.media`
+dependency, and the media-specific key codes in `dispatchKeyEvent`/`ShutterAccessibilityService`)
+at the user's request: four attempts (plain key dispatch, passive `MediaSessionCompat`, an
+Accessibility service, then an audio-focus-holding `MediaSessionCompat`) with zero confirmed signal
+is enough attempts without real hardware to test against. `RemoteShutterController` and
+`ShutterAccessibilityService` remain, scoped to volume/camera keys only -- the mechanism an actual
+dedicated Bluetooth shutter remote is expected to use, to be tested once one is in hand.
+
+**Both a 3-second self-timer and a no-delay option are now offered as separate buttons** on Palette
+Capture and the repeatability-test screen, rather than only the timer: a delay only helps when
+something touches the phone to trigger the shot, so a genuinely hands-off trigger (once one is
+confirmed working) should skip it. A remote-triggered shot always uses the no-delay path for the
+same reason.
+
 ### Phase 3 — Palette creation
 Picking with loupe, ordered auto-naming, rename, delete, resample, persistence, palette list.
 **Done when:** a palette survives an app restart with colours, names and order intact.
